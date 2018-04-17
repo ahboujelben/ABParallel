@@ -10,7 +10,7 @@ auto generateTestContainer() -> std::vector<int>{
     auto src = std::vector<int>(n);
     std::generate(src.begin(), src.end(), []() {
         auto min(0);
-        auto max(50000);
+        auto max(500);
         return  min + (rand() % static_cast<int>(max - min + 1));
     });
     return src;
@@ -93,10 +93,40 @@ auto testAccuracy_par_replace_if(std::vector<int>& testContainerParallel, std::v
     assert(testContainerParallel==testContainerSequential && "Accuracy test failed.");
 }
 
+//Testing par_remove
+
+auto testPerformace_par_remove(std::vector<int>& src, std::size_t chunkSize) -> void{
+    auto foundIt=ABParallel::par_remove(src.begin(), src.end(), 14 , chunkSize);
+    src.erase(foundIt, src.end());
+}
+
+auto testAccuracy_par_remove(std::vector<int>& testContainerParallel, std::vector<int>& testContainerSequential, std::size_t chunkSize) -> void{
+    auto foundItParallel=ABParallel::par_remove(testContainerParallel.begin(), testContainerParallel.end(), 14 , chunkSize);
+    auto foundItSequential=std::remove(testContainerSequential.begin(), testContainerSequential.end(), 14);
+    testContainerParallel.erase(foundItParallel, testContainerParallel.end());
+    testContainerSequential.erase(foundItSequential, testContainerSequential.end());
+    assert(testContainerParallel==testContainerSequential && "Accuracy test failed.");
+}
+
+//Testing par_remove_if
+
+auto testPerformace_par_remove_if(std::vector<int>& src, std::size_t chunkSize) -> void{
+    auto foundIt=ABParallel::par_remove_if(src.begin(), src.end(), unaryLambda , chunkSize);
+    src.erase(foundIt, src.end());
+}
+
+auto testAccuracy_par_remove_if(std::vector<int>& testContainerParallel, std::vector<int>& testContainerSequential, std::size_t chunkSize) -> void{
+    auto foundItParallel=ABParallel::par_remove_if(testContainerParallel.begin(), testContainerParallel.end(), unaryLambda , chunkSize);
+    auto foundItSequential=std::remove_if(testContainerSequential.begin(), testContainerSequential.end(), unaryLambda);
+    testContainerParallel.erase(foundItParallel, testContainerParallel.end());
+    testContainerSequential.erase(foundItSequential, testContainerSequential.end());
+    assert(testContainerParallel==testContainerSequential && "Accuracy test failed.");
+}
+
 auto main() -> int{
 
     std::vector<size_t> chunkSizes{1000000, 5000000, 10000000, 20000000, 25000000, 50000000, 100000000};
 
-    testPerformanceForDifferentChunkSizes(testPerformace_par_replace_if, chunkSizes);
-    testAccuracyForDifferentRuns(testAccuracy_par_replace_if, 10000000);
+    testPerformanceForDifferentChunkSizes(testPerformace_par_remove, chunkSizes);
+    testAccuracyForDifferentRuns(testAccuracy_par_remove, 10000000);
 }

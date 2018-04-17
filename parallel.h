@@ -214,6 +214,62 @@ auto par_copy_if(srcIt first, srcIt last, dstIt dst, functor func, size_t chunkS
     return dstLast;
 }
 
+// Parallel version of std::remove
+
+template <typename srcIt, typename valueType>
+auto par_remove(srcIt first, srcIt last, const valueType& value, size_t chunkSize) -> srcIt {
+    auto n = static_cast<size_t>(std::distance(first, last));
+    using analysedRange = std::pair<srcIt, srcIt>;
+    using futureType = std::future< analysedRange >;
+    auto futures = std::vector<futureType>{};
+    futures.reserve(n / chunkSize);
+
+    for (size_t startId = 0; startId < n; startId += chunkSize) {
+        const auto stopId = std::min(startId + chunkSize, n);
+        auto future = std::async(std::launch::async, [=] {
+            auto itFound = std::remove(first + startId, first + stopId, value);
+            return std::make_pair(first + startId, itFound);
+        });
+        futures.emplace_back(std::move(future));
+    }
+
+    auto dstLast = futures.front().get().second;
+    for (auto it = std::next(futures.begin()); it != futures.end(); ++it) {
+        auto chunkRange = it->get();
+        dstLast = std::move(chunkRange.first, chunkRange.second, dstLast);
+    }
+
+    return dstLast;
+}
+
+// Parallel version of std::remove_if
+
+template <typename srcIt, typename functor>
+auto par_remove_if(srcIt first, srcIt last, functor func, size_t chunkSize) -> srcIt {
+    auto n = static_cast<size_t>(std::distance(first, last));
+    using analysedRange = std::pair<srcIt, srcIt>;
+    using futureType = std::future< analysedRange >;
+    auto futures = std::vector<futureType>{};
+    futures.reserve(n / chunkSize);
+
+    for (size_t startId = 0; startId < n; startId += chunkSize) {
+        const auto stopId = std::min(startId + chunkSize, n);
+        auto future = std::async(std::launch::async, [=, &func] {
+            auto itFound = std::remove_if(first + startId, first + stopId, func);
+            return std::make_pair(first + startId, itFound);
+        });
+        futures.emplace_back(std::move(future));
+    }
+
+    auto dstLast = futures.front().get().second;
+    for (auto it = std::next(futures.begin()); it != futures.end(); ++it) {
+        auto chunkRange = it->get();
+        dstLast = std::move(chunkRange.first, chunkRange.second, dstLast);
+    }
+
+    return dstLast;
+}
+
 // Parallel version of std::count
 
 template <typename srcIt, typename valueType>
@@ -385,6 +441,6 @@ auto par_sum(srcIt first, srcIt last, functor func, size_t chunkSize) -> typenam
     return acc1+acc2;
 }
 
-// TO DO: erase, erase_if, generate, equal, all_of, any_of, none_of
+// TO DO: generate, equal, all_of, any_of
 
 }
