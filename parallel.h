@@ -121,6 +121,48 @@ auto par_fill(srcIt first, srcIt last, const valueType& value, size_t chunkSize)
     future.wait();
 }
 
+// Parallel version of std::replace
+
+template <typename srcIt, typename valueType>
+auto par_replace(srcIt first, srcIt last, const valueType& oldValue, const valueType& newValue, size_t chunkSize) -> void {
+    const auto n = static_cast<size_t>(std::distance(first, last));
+    if (n <= chunkSize) {
+        std::replace(first, last, oldValue, newValue);
+        return;
+    }
+    const auto srcMiddle = std::next(first, n / 2);
+
+    // Branch of first part to another task
+    auto future = std::async(std::launch::async, [=] {
+        par_replace(first, srcMiddle, oldValue, newValue, chunkSize);
+    });
+
+    // Recursively handle the second part
+    par_replace(srcMiddle, last, oldValue, newValue, chunkSize);
+    future.wait();
+}
+
+// Parallel version of std::replace_if
+
+template <typename srcIt, typename functor, typename valueType>
+auto par_replace_if(srcIt first, srcIt last,  functor func, const valueType& newValue, size_t chunkSize) -> void {
+    const auto n = static_cast<size_t>(std::distance(first, last));
+    if (n <= chunkSize) {
+        std::replace_if(first, last, func, newValue);
+        return;
+    }
+    const auto srcMiddle = std::next(first, n / 2);
+
+    // Branch of first part to another task
+    auto future = std::async(std::launch::async, [=, &func] {
+        par_replace_if(first, srcMiddle, func, newValue, chunkSize);
+    });
+
+    // Recursively handle the second part
+    par_replace_if(srcMiddle, last, func, newValue, chunkSize);
+    future.wait();
+}
+
 // Parallel version of std::copy
 
 template <typename srcIt, typename dstIt>
@@ -343,6 +385,6 @@ auto par_sum(srcIt first, srcIt last, functor func, size_t chunkSize) -> typenam
     return acc1+acc2;
 }
 
-// TO DO: find, find_if, replace, replace_if, erase, erase_if, generate, equal, all_of, any_of, none_of
+// TO DO: erase, erase_if, generate, equal, all_of, any_of, none_of
 
 }
