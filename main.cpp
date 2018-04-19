@@ -3,7 +3,7 @@
 #include <chrono>
 #include <cassert>
 
-#include "parallel.h"
+#include "include\parallel.h"
 
 #define PRINT_FUNC() std::cout << __func__ << " ";
 

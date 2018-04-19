@@ -1,3 +1,10 @@
+#-------------------------------------------------
+#
+# Project created by Ahmed Hamdi Boujelben
+# Copyright: (c) 2018 Ahmed Hamdi Boujelben
+#
+#-------------------------------------------------
+
 QT -= gui
 
 CONFIG += console
@@ -19,4 +26,4 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += main.cpp
 
 HEADERS += \
-    parallel.h
+    include\parallel.h

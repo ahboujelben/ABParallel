@@ -1,3 +1,12 @@
+/////////////////////////////////////////////////////////////////////////////
+/// Name:        ABParallel.h
+/// Purpose:     A c++ library of parallel algorithms.
+/// Author:      Ahmed Hamdi Boujelben <ahmed.hamdi.boujelben@gmail.com>
+/// Created:     2018
+/// Copyright:   (c) 2018 Ahmed Hamdi Boujelben
+/// Licence:     Attribution-NonCommercial 4.0 International
+/////////////////////////////////////////////////////////////////////////////
+
 #include <algorithm>
 #include <future>
 
