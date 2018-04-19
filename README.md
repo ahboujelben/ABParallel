@@ -65,7 +65,7 @@ auto main() -> int{
     auto sum = ABParallel::par_sum(container.begin(), container.end() , chunkSize);
 
     // count the number of elements that satisfy a certain condition
-    auto count = ABParallel::par_sum(container.begin(), container.end() , unaryLambda, chunkSize);
+    auto count = ABParallel::par_count_if(container.begin(), container.end() , unaryLambda, chunkSize);
 
     // find the first occurence of an element that satisfies a certain condition
     auto foundIterator = ABParallel::par_find_if(container.begin(), container.end() , unaryLambda, chunkSize);
