@@ -1,5 +1,5 @@
 # ABParallel
-ABParallel is a C++ library that provides parallel algorithms supported by C++11 compilers. The algorithms have a similar syntax to that of the STL and uses the "divide and conquer" approach for most implementations.
+ABParallel is a cross-platform C++ library that provides parallel algorithms supported by C++11 compilers. The algorithms have a similar syntax to that of the STL and uses the "divide and conquer" approach for most implementations.
 
 The current supported algorithms are listed below:
 * par_transform
