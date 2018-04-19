@@ -5,12 +5,14 @@
 
 #include "parallel.h"
 
+#define PRINT_FUNC() std::cout << __func__ << " ";
+
 auto generateTestContainer() -> std::vector<int>{
     const auto n = size_t{100000000};
     auto src = std::vector<int>(n);
     std::generate(src.begin(), src.end(), []() {
         auto min(0);
-        auto max(500);
+        auto max(500000);
         return  min + (rand() % static_cast<int>(max - min + 1));
     });
     return src;
@@ -18,115 +20,140 @@ auto generateTestContainer() -> std::vector<int>{
 
 //This function measures the performance of a parallel algorithm running on a container for different chunk sizes (if the chunk size is greater than the container size, the STL equivalent algorithm is used)
 
-template<typename container, typename chunkContainer>
-auto testPerformanceForDifferentChunkSizes(void (*algorithmTester) (container,std::size_t),  const chunkContainer& sizes) -> void {
-    auto testContainer=generateTestContainer();
-
-    for(auto chunkSize:sizes)
-    {
-        container testContainerFreshCopy=testContainer;
-
-        using timer = std::chrono::steady_clock;
-        const timer::time_point start = timer::now();
-
-        algorithmTester(testContainerFreshCopy, chunkSize);
-
-        auto stop = timer::now();
-        auto duration = (stop - start);
-        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
-        std::cout <<"Chunk size: "<<chunkSize<<" / Processing time: "<< ms << " ms " << '\n';
-    }
-}
-
-//This function tests the presence of data races by performing multiple runs and comparing the result of  the parallel algorithm to the sequential one
-
 template<typename container>
-auto testAccuracyForDifferentRuns(void (*algorithmTester) (container, container, std::size_t), std::size_t chunkSize) -> void {
-    auto testContainer=generateTestContainer();
-    for(auto i=0; i<20; i++)
-    {
-        container testContainerFreshCopyParallel=testContainer;
-        container testContainerFreshCopySequential=testContainer;
-        algorithmTester(testContainerFreshCopyParallel, testContainerFreshCopySequential, chunkSize);
-    }
+auto testAlgorithmPerformance(container testContainer, std::size_t chunkSize, void (*testedAlgorithm) (container&, std::size_t)) -> void {
+
+    using timer = std::chrono::steady_clock;
+    const timer::time_point start = timer::now();
+
+    testedAlgorithm(testContainer, chunkSize);
+
+    auto stop = timer::now();
+    auto duration = (stop - start);
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+
+    std::cout <<"Chunk size: "<<chunkSize<<" / Processing time: "<< ms << " ms " << '\n';
 }
 
 //Lambdas used for testing
 
-auto transformLambda = [](int v) {
-    auto sum = v;
-    for (size_t i = 0; i < 10; ++i) {
-        sum += sqrt(i*i*i*sum);
-    }
-    return sum;
+auto transformLambda = [](int a) {
+    return sqrt(sqrt(a));
 };
 
 auto compareLambda = [](int a, int b){
-    return sqrt(sqrt(sqrt(a)))<sqrt(sqrt(sqrt(b)));
+    return sqrt(sqrt(a))<sqrt(sqrt(b));
 };
 
 auto unaryLambda = [](int a){
-    return sqrt(a)<20;
+    return abs(sqrt(sqrt(sqrt(a))))<0;
 };
 
-//Testing par_replace
+auto generateLambda = [](){
+    auto min(0);
+    auto max(500000);
+    return  int(min + (rand() % static_cast<int>(max - min + 1)));
+};
 
-auto testPerformace_par_replace(std::vector<int>& src, std::size_t chunkSize) -> void{
-    ABParallel::par_replace(src.begin(), src.end(), 12, 14 , chunkSize);
+///////////// Testing the performance of few algorithms
+
+//Testing par_transform
+
+auto vector_par_transform(std::vector<int>& src, std::size_t chunkSize) -> void{
+    PRINT_FUNC();
+    ABParallel::par_transform(src.begin(), src.end(), src.begin(), transformLambda , chunkSize);
 }
 
-auto testAccuracy_par_replace(std::vector<int>& testContainerParallel, std::vector<int>& testContainerSequential, std::size_t chunkSize) -> void{
-    ABParallel::par_replace(testContainerParallel.begin(), testContainerParallel.end(), 12, 14 , chunkSize);
-    std::replace(testContainerSequential.begin(), testContainerSequential.end(), 12, 14);
-    assert(testContainerParallel==testContainerSequential && "Accuracy test failed.");
+//Testing par_for_each
+
+auto vector_par_for_each(std::vector<int>& src, std::size_t chunkSize) -> void{
+    PRINT_FUNC();
+    ABParallel::par_for_each(src.begin(), src.end(), transformLambda , chunkSize);
+}
+
+//Testing generate
+auto vector_par_generate(std::vector<int>& src, std::size_t chunkSize) -> void{
+    PRINT_FUNC();
+    ABParallel::par_generate(src.begin(), src.end() , generateLambda, chunkSize);
+}
+
+
+//Testing sum
+auto vector_par_sum(std::vector<int>& src, std::size_t chunkSize) -> void{
+    PRINT_FUNC();
+    ABParallel::par_sum(src.begin(), src.end(), chunkSize);
+}
+
+//Testing count
+auto vector_par_count(std::vector<int>& src, std::size_t chunkSize) -> void{
+    PRINT_FUNC();
+    ABParallel::par_count(src.begin(), src.end(), 250, chunkSize);
+}
+
+//Testing find_if
+auto vector_par_find_if(std::vector<int>& src, std::size_t chunkSize) -> void{
+    PRINT_FUNC();
+    ABParallel::par_find_if(src.begin(), src.end() , unaryLambda, chunkSize);
 }
 
 //Testing par_replace_if
 
-auto testPerformace_par_replace_if(std::vector<int>& src, std::size_t chunkSize) -> void{
+auto vector_par_replace_if(std::vector<int>& src, std::size_t chunkSize) -> void{
+    PRINT_FUNC();
     ABParallel::par_replace_if(src.begin(), src.end(), unaryLambda, 14 , chunkSize);
-}
-
-auto testAccuracy_par_replace_if(std::vector<int>& testContainerParallel, std::vector<int>& testContainerSequential, std::size_t chunkSize) -> void{
-    ABParallel::par_replace_if(testContainerParallel.begin(), testContainerParallel.end(), unaryLambda, 14 , chunkSize);
-    std::replace_if(testContainerSequential.begin(), testContainerSequential.end(), unaryLambda, 14);
-    assert(testContainerParallel==testContainerSequential && "Accuracy test failed.");
-}
-
-//Testing par_remove
-
-auto testPerformace_par_remove(std::vector<int>& src, std::size_t chunkSize) -> void{
-    auto foundIt=ABParallel::par_remove(src.begin(), src.end(), 14 , chunkSize);
-    src.erase(foundIt, src.end());
-}
-
-auto testAccuracy_par_remove(std::vector<int>& testContainerParallel, std::vector<int>& testContainerSequential, std::size_t chunkSize) -> void{
-    auto foundItParallel=ABParallel::par_remove(testContainerParallel.begin(), testContainerParallel.end(), 14 , chunkSize);
-    auto foundItSequential=std::remove(testContainerSequential.begin(), testContainerSequential.end(), 14);
-    testContainerParallel.erase(foundItParallel, testContainerParallel.end());
-    testContainerSequential.erase(foundItSequential, testContainerSequential.end());
-    assert(testContainerParallel==testContainerSequential && "Accuracy test failed.");
 }
 
 //Testing par_remove_if
 
-auto testPerformace_par_remove_if(std::vector<int>& src, std::size_t chunkSize) -> void{
+auto vector_par_remove_if(std::vector<int>& src, std::size_t chunkSize) -> void{
+    PRINT_FUNC();
     auto foundIt=ABParallel::par_remove_if(src.begin(), src.end(), unaryLambda , chunkSize);
     src.erase(foundIt, src.end());
 }
 
-auto testAccuracy_par_remove_if(std::vector<int>& testContainerParallel, std::vector<int>& testContainerSequential, std::size_t chunkSize) -> void{
-    auto foundItParallel=ABParallel::par_remove_if(testContainerParallel.begin(), testContainerParallel.end(), unaryLambda , chunkSize);
-    auto foundItSequential=std::remove_if(testContainerSequential.begin(), testContainerSequential.end(), unaryLambda);
-    testContainerParallel.erase(foundItParallel, testContainerParallel.end());
-    testContainerSequential.erase(foundItSequential, testContainerSequential.end());
-    assert(testContainerParallel==testContainerSequential && "Accuracy test failed.");
+//Testing none_of
+auto vector_par_none_of(std::vector<int>& src, std::size_t chunkSize) -> void{
+    PRINT_FUNC();
+    ABParallel::par_none_of(src.begin(), src.end() , unaryLambda, chunkSize);
+}
+
+//Testing max_element
+auto vector_par_max_element(std::vector<int>& src, std::size_t chunkSize) -> void{
+    PRINT_FUNC();
+    ABParallel::par_max_element(src.begin(), src.end(), chunkSize);
+}
+
+//Testing min_element
+auto vector_par_min_element(std::vector<int>& src, std::size_t chunkSize) -> void{
+    PRINT_FUNC();
+    ABParallel::par_min_element(src.begin(), src.end(), chunkSize);
 }
 
 auto main() -> int{
 
+    std::cout<<"Starting performance testing of few ABParallel algorithms. \n\nNote that the last chunk size corresponds to the sequential STL algorithm.\n\n";
+
+    auto testContainer=generateTestContainer();
+
     std::vector<size_t> chunkSizes{1000000, 5000000, 10000000, 20000000, 25000000, 50000000, 100000000};
 
-    testPerformanceForDifferentChunkSizes(testPerformace_par_remove, chunkSizes);
-    testAccuracyForDifferentRuns(testAccuracy_par_remove, 10000000);
+    std::vector<void (*) (std::vector<int>&, std::size_t)> testedAlgorithms{
+        vector_par_transform,
+        vector_par_for_each,
+        vector_par_generate,
+        vector_par_sum,
+        vector_par_count,
+        vector_par_find_if,
+        vector_par_replace_if,
+        vector_par_remove_if,
+        vector_par_none_of,
+        vector_par_max_element,
+        vector_par_min_element
+    };
+
+    for(auto testedAlgorithm: testedAlgorithms){
+        for(auto chunkSize: chunkSizes)
+            testAlgorithmPerformance(testContainer, chunkSize, testedAlgorithm);
+        std::cout<<std::endl;
+    }
 }
