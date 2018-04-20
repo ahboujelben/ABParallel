@@ -18,12 +18,11 @@ The current supported algorithms are listed below:
 * par_replace_if
 * par_remove_if
 * par_equal
-* par_equal
 * par_all_of
 * par_any_of
 * par_none_of
 * par_max_element
-* par_max_element
+* par_min_element
 
 ## Syntax
 The syntax builds upon the one used in STL algorithms where container iterators are provided as arguments along with optional functors or lambdas.
