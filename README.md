@@ -4,6 +4,7 @@ ABParallel is a cross-platform C++ library that provides parallel algorithms sup
 The current supported algorithms are listed below:
 * par_transform
 * par_for_each
+* par_sort
 * par_generate
 * par_fill
 * par_sum
@@ -25,14 +26,16 @@ The current supported algorithms are listed below:
 * par_min_element
 
 ## Syntax
-The syntax builds upon the one used in STL algorithms where container iterators are provided as arguments along with optional functors or lambdas.
-The user needs also to provide an extra argument: the chunk size. This is the size of container elements that will be handled by a single task. Most of the time, the optimal chunke size is equal to the total elements of the container divided by the logical cores on the machine. However, this is not always the case and a sensitivity analysis for various chunk sizes might be useful to determine the best chunk size (check main.cpp for example).
+The syntax builds upon the one used by STL algorithms, where container iterators are provided as arguments along with optional functors or lambdas.
+The user needs also to provide an extra argument: the chunk size. This is the size of container elements that will be handled by a single task. Most of the time, the optimal chunke size is equal to the total elements of the container divided by the number of available cores. However, this is not always the case and a sensitivity analysis for various chunk sizes might be useful to determine the best chunk size (check main.cpp for example).
 
 ## Installation
 Using the algorithms of ABParallel is straightforward. Just include parallel.h in your project and use the namespace ABParallel.
 
 ## Examples
 ```c++
+#include "parallel.h"
+
 auto generateLambda = [](){
     auto min(0);
     auto max(500000);
