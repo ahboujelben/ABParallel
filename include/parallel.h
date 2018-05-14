@@ -404,6 +404,132 @@ auto par_remove_if(srcIt first, srcIt last, functor func, size_t chunkSize) -> s
     return dstLast;
 }
 
+// Parallel version of std::sort
+
+// Perform a merge of two sorted containers
+template <typename srcIt, typename functor>
+auto par_merge(srcIt first, srcIt middle, srcIt last,functor func) -> void {
+
+    // Create two temporary vectors to store the current elements of both chunks
+    const auto n1 = static_cast<size_t>(std::distance(first, middle));
+    const auto n2 = static_cast<size_t>(std::distance(middle, last));
+    using valueType = typename std::iterator_traits<srcIt>::value_type;
+    std::vector<valueType> arrayLeft(n1), arrayRight(n2);
+    std::copy(first, middle, arrayLeft.begin());
+    std::copy(middle, last, arrayRight.begin());
+
+    // Initialise indices
+    auto helperLeft(arrayLeft.begin()), helperLeftEnd(arrayLeft.end()), helperRight(arrayRight.begin()), helperRightEnd(arrayRight.end());
+    auto current(first);
+
+    // Merge sort by comparing the elements of the temporary arrays
+    while (helperLeft != helperLeftEnd && helperRight != helperRightEnd) {
+
+        if(func(*helperLeft, *helperRight)){
+            *current = *helperLeft;
+            helperLeft=std::next(helperLeft);
+        }
+
+        else{
+            *current = *helperRight;
+            helperRight=std::next(helperRight);
+        }
+
+        current=std::next(current);
+    }
+
+    // Copy the remaining  elements of the left array
+    while(helperLeft != helperLeftEnd){
+        *current = *helperLeft;
+        helperLeft=std::next(helperLeft);
+        current=std::next(current);
+    }
+}
+
+template <typename srcIt, typename functor>
+auto par_sort(srcIt first, srcIt last,functor func, size_t chunkSize) -> void {
+    const auto n = static_cast<size_t>(std::distance(first, last));
+    if (n <= chunkSize) {
+        std::sort(first, last, func);
+        return;
+    }
+    const auto srcMiddle = std::next(first, n / 2);
+
+    // Create a new task to treat the first part
+    auto future = std::async(std::launch::async, [=, &func] {
+        par_sort(first, srcMiddle, func, chunkSize);
+    });
+
+    // Treat the second part recursively
+    par_sort(srcMiddle, last, func, chunkSize);
+    future.wait();
+
+    // Merge the two sorted parts
+    par_merge(first, srcMiddle, last, func);
+}
+
+// Perform a merge of two sorted containers
+template <typename srcIt>
+auto par_merge(srcIt first, srcIt middle, srcIt last) -> void {
+
+    // Create two temporary vectors to store the current elements of both chunks
+    const auto n1 = static_cast<size_t>(std::distance(first, middle));
+    const auto n2 = static_cast<size_t>(std::distance(middle, last));
+    using valueType = typename std::iterator_traits<srcIt>::value_type;
+    std::vector<valueType> arrayLeft(n1), arrayRight(n2);
+    std::copy(first, middle, arrayLeft.begin());
+    std::copy(middle, last, arrayRight.begin());
+
+     // Initialise indices
+    auto helperLeft(arrayLeft.begin()), helperLeftEnd(arrayLeft.end()), helperRight(arrayRight.begin()), helperRightEnd(arrayRight.end());
+    auto current(first);
+
+    // Merge sort by comparing the elements of the temporary arrays
+    while (helperLeft != helperLeftEnd && helperRight != helperRightEnd) {
+
+        if(*helperLeft <= *helperRight){
+            *current = *helperLeft;
+            helperLeft=std::next(helperLeft);
+        }
+
+        else{
+            *current = *helperRight;
+            helperRight=std::next(helperRight);
+        }
+
+        current=std::next(current);
+    }
+
+    // Copy the remaining  elements of the left array
+    while(helperLeft != helperLeftEnd){
+        *current = *helperLeft;
+        helperLeft=std::next(helperLeft);
+        current=std::next(current);
+    }
+}
+
+template <typename srcIt>
+auto par_sort(srcIt first, srcIt last, size_t chunkSize) -> void {
+    const auto n = static_cast<size_t>(std::distance(first, last));
+    if (n <= chunkSize) {
+        std::sort(first, last);
+        return;
+    }
+    const auto srcMiddle = std::next(first, n / 2);
+
+    // Create a new task to treat the first part
+    auto future = std::async(std::launch::async, [=] {
+        par_sort(first, srcMiddle, chunkSize);
+    });
+
+    // Treat the second part recursively
+    par_sort(srcMiddle, last, chunkSize);
+    future.wait();
+
+    // Merge the two sorted parts
+    par_merge(first, srcMiddle, last);
+}
+
 // Parallel version of equal
 
 template <typename srcIt, typename dstIt, typename functor>

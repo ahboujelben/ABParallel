@@ -71,6 +71,13 @@ auto vector_par_for_each(std::vector<int>& src, std::size_t chunkSize) -> void{
     ABParallel::par_for_each(src.begin(), src.end(), transformLambda , chunkSize);
 }
 
+//Testing par_sort
+
+auto vector_par_sort(std::vector<int>& src, std::size_t chunkSize) -> void{
+    PRINT_FUNC();
+    ABParallel::par_sort(src.begin(), src.end() , chunkSize);
+}
+
 //Testing generate
 auto vector_par_generate(std::vector<int>& src, std::size_t chunkSize) -> void{
     PRINT_FUNC();
@@ -140,6 +147,7 @@ auto main() -> int{
     std::vector<void (*) (std::vector<int>&, std::size_t)> testedAlgorithms{
         vector_par_transform,
         vector_par_for_each,
+        vector_par_sort,
         vector_par_generate,
         vector_par_sum,
         vector_par_count,
